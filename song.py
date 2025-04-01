@@ -7,11 +7,20 @@ from urllib.parse import quote
 import json
 import mpv
 from colorama import init, Fore, Back, Style
+import math
 
 init(autoreset=True)
 
 def clear_screen():
     os.system('cls' if os.name == 'nt' else 'clear')
+
+def format_duration(seconds):
+    """Convert seconds to MM:SS format"""
+    if not seconds:
+        return "??:??"
+    minutes = math.floor(seconds / 60)
+    seconds = math.floor(seconds % 60)
+    return f"{minutes:02d}:{seconds:02d}"
 
 def search_youtube(query):
     search_url = f"https://www.youtube.com/results?search_query={quote(query)}"
@@ -45,10 +54,21 @@ def search_youtube(query):
                 video = content['videoRenderer']
                 video_id = video.get('videoId')
                 title = video.get('title', {}).get('runs', [{}])[0].get('text')
+                
+                duration_text = video.get('lengthText', {}).get('simpleText', '')
+                duration_seconds = None
+                if duration_text:
+                    try:
+                        mins, secs = map(int, duration_text.split(':'))
+                        duration_seconds = mins * 60 + secs
+                    except:
+                        duration_seconds = None
+                
                 if video_id and title:
                     videos.append({
                         'title': title,
-                        'url': f'https://www.youtube.com/watch?v={video_id}'
+                        'url': f'https://www.youtube.com/watch?v={video_id}',
+                        'duration': duration_seconds
                     })
                     if len(videos) >= 10:
                         break
@@ -101,7 +121,8 @@ if __name__ == "__main__":
         print(Fore.CYAN + Style.BRIGHT + "🔍 Search results:\n")
         for idx, video in enumerate(results, 1):
             color = colors[idx % len(colors)]
-            print(color + f"{idx}. {video['title']}")
+            duration = format_duration(video.get('duration'))
+            print(color + f"{idx}. {video['title']}" + Fore.WHITE + f" [{duration}]")
 
         print(Fore.CYAN + Style.BRIGHT + "\nChoose the number of the song you want to listen to " + 
               Fore.YELLOW + "(1-10): " + Fore.WHITE, end='')
